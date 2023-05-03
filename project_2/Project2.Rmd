@@ -1,0 +1,116 @@
+---
+title: "All About Data Wrangling in R!"
+author: "Hannah Peterson"
+date: "04/01/22"
+output: 
+  html_document:
+    code_folding: hide
+    theme: flatly
+    toc: true
+    toc_float: true
+    code_download: true
+---
+
+```{r, warning = FALSE, message = FALSE}
+# Load the R Packages we need
+library(tidyverse)
+library(fueleconomy)
+```
+For this tutorial, we'll be using the `vehicles` dataset from the `fueleconomy` package. As described by the creator, this dataset includes "fuel economy data from the EPA, 1985-2015. This dataset contains selected variables, and removes vehicles with incomplete data (e.g. no drive train data)."
+Here's a snippet of the data:
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+# Load any datasets you may need
+vehicles
+```
+
+# What's Data Wrangling?
+We'll be using `dplyr` to wrangle data in R. This, along with ggplot2, automatically loads with `library(tidyverse)`. `dplyr` provides a grammar for data transformation with five main functions:
+
+- `select()`: return a subset of columns (aka variables)
+- `filter()`: return a subset of rows
+- `mutate()`: add or modify existing columns; defines and inserts *new variables* into a data frame as columns
+- `arrange():` sort rows by specific columns
+  - By default, this arranges in *ascending order* - to sort in *descending order*, use `desc()` around the variables within `arrange()`
+- `summarize()`: aggregate data across rows (e.g. grouped means); collapses the data into rows based on summary statistics (mean(), sd(), median(), max(), n(), etc.)
+
+These functions take a *data frame* as its first argument and use the pipe operator ` %>% ` to connect arguments.
+
+Some other useful `dplyr` functions include:
+
+- `rename()`: rename existing columns (variables)
+- `group_by()`: used with a function that performs a calculation (such as `summarize()`), this groups by a specified variable
+- `count()`: counts the number of occurrences 
+- `slice()`: returns specified indices (rows)
+- `slice_max()`: returns a specified number of rows with the highest values of the specified variable 
+
+**NOTE:** If a dataset has missing values, add `na.rm = TRUE` to remove them from any calculations. Luckily, our dataset doesn't have any.
+
+Let's see these in action!
+We'll be using the `vehicles` dataset as mentioned above.
+
+## Example 1
+Let's find the average city miles per gallon (`cty`) for cars from 1999:
+
+  - We start with our dataset, pipe it to a `filter()` with our specification of `year == 1999`, and then pipe to a `summarize()` where we display the mean of all of our 1999 cars' `cty` mpg.
+```{r}
+vehicles %>% 
+  filter(year == 1999) %>% 
+  summarize(mean(cty))
+```
+
+This tells us that the average city miles per gallon for cars made in 1999 is 17.1.
+
+## Example 2
+Now, let's find the 5 cars that had the best city mpg (*highest* `cty`) in 2015 and display their `manufacturer`, `model`,`hwy`, and `trans`:
+
+  - NOTE: Since this dataset includes electric cars, we'll use `fuel != "Electricity"` within our filter step to only deal with cars that aren't electric.
+  - We start with our dataset, pipe it to a `filter()` with our specification of `year == 2015 & fuel != "Electricity"`, and then pipe to `arrange(desc(cty))` which arranges the data in descending order of their `cty` value. Then we pipe to `select(make, model, cty, trans)` which selects which variables we'd like to display, and finally we use `slice(1:5)` which "slices" the table to only show us the first 5 rows.
+```{r}
+vehicles %>% 
+  filter(year == 2015 & fuel != "Electricity") %>% 
+  arrange(desc(cty)) %>% 
+  select(make, model, cty, trans) %>% 
+  slice(1:5)
+```
+
+This tells us that in 2015, the best city mpg in a non-electric car was the Honda Fit with the automatic variable gears ratios transmission, followed by the Honda Fit with the automatic AV-S7 transmission, and then the Lexus RX 450h, Chevrolet Spark, and Nissan Versa, respectively. 
+
+## Example 3
+Now let's use a combination of `dplyr` and `ggplot` to wrangle data *and* visualize it.
+
+  - We first pipe our dataset to `count(class)` which "counts" up how many vehicles there are within each class. Then, we pipe to `slice_max(order_by = n, n = 10)` to get the 10 most popular classes. Next, we pipe this to ggplot! We specify `fct_reorder(class,-n)` as x, which simply reorders the bars so that they're in descending order of n, and we use `y = n` because n represnts our counts for each class. Because we used `count()` in our pipeline, we have to use `geom_col()` instead of `geom_bar()` so that we can specify both our x and y. Finally, we add labels with `labs()` and flip the coordinates with `coord_flip()`.
+```{r}
+vehicles %>% 
+  count(class) %>%
+  slice_max(order_by = n, n = 10) %>% 
+  ggplot(aes(x = fct_reorder(class,-n), y = n)) +
+  geom_col() +
+  labs(x = "Vehicle Class", y = "Count") +
+  coord_flip() 
+```
+
+This shows us the top 10 most popular classes for each unique vehicle model produced throughout the years.
+
+  - NOTE: This dataset doesn't include how many *total* models of vehicles were produced each year, it just tells how many *unique* vehicle models were produced each year. So, this visual doesn't tell us which vehicle classes were most popular each year *in total*, it just tells us which vehicle classes were most popular each year for *singular* models that were produced. For example, our visual shows a count of roughly 4500 compact cars, which means that throughout the years, of the vehicle models that came out each year, roughly 4500 of them were compact cars.
+
+## Example 4 
+Now let's look at during which years Toyota Corollas were produced, let's specify them by their transmission type, and let's also look at their city mpg rating.
+
+- We first pipe our dataset to `filter(model == "Corolla")` which selects only the vehicles whose model is "Corolla." Then, we pipe to `ggplot()` and specify x as `year`, y as `cty`, and color as `trans`. Next, we'll add `geom_point()` for our scatterplot and `facet_wrap(~ trans)` to seperate our graphs by transmission. Finally, `theme(legend.position = "none")` allows us to get rid of a self-explanatory color legend, and we add our labels with `labs()`.
+
+```{r}
+vehicles %>% 
+  filter(model == "Corolla") %>% 
+  ggplot(aes(x = year, y = cty, color = trans)) +
+  geom_point() +
+  facet_wrap(~ trans) +
+  theme(legend.position = "none") +
+  labs(x = "Year", y = "City MPG", title = "Toyota Corolla City MPG by Year by Transmission")
+```
+
+This visualization tells us a few things! 
+
+  - We can see that Toyota's two main transmissions for the corolla are automatic 4 speed and manual 5 speed, since those two graphs clearly have the most data points. 
+  - We can see that Corolla's with AV-S7 and variable gear ratios transmissions were only produced for one year; S5 and manual 6 speed transmissions were only produced for three years; and the automatic 3 speed was produced regularly up until around 2002.
+  - We can see that there's generally a trend of city mpg rising over the years.
+
