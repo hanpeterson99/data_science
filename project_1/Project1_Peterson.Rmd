@@ -1,0 +1,96 @@
+---
+title: "What Affects Diamond Price?"
+author: "Hannah Peterson"
+date: "02/18/2022"
+output: 
+  html_document:
+    theme: flatly
+    toc: true
+    toc_float: true
+    code_download: true
+---
+
+```{r, warning = FALSE, message = FALSE}
+# Load the R Packages we may need
+library(tidyverse)
+library(ggthemes)
+```
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE, include=FALSE}
+# Load any datasets you may need
+diamonds
+#View(diamonds)
+#?diamonds
+```
+
+## Selecting the Data
+
+For this mini project, we'll be using the `diamonds` dataset from ggpplot2. It's described as "a dataset containing the prices and other attributes of almost 54,000 diamonds" and the variables are as follows:
+
+- **price**: price in US dollars (\$326–\$18,823)
+- **carat**: weight of the diamond (0.2–5.01)
+- **cut**: quality of the cut (Fair, Good, Very Good, Premium, Ideal)
+- **color**: diamond colour, from D (best) to J (worst)
+- **clarity**: a measurement of how clear the diamond is (I1 (worst), SI2,    SI1, VS2, VS1, VVS2, VVS1, IF (best))
+- **x**: length in mm (0–10.74)
+- **y**: width in mm (0–58.9)
+- **z**: depth in mm (0–31.8)
+- **depth**: total depth percentage = z / mean(x, y) = 2 * z / (x + y)       (43–79)
+- **table**: width of top of diamond relative to widest point (43–95)
+
+
+Since this is a large dataset, let's take a random sample of 1000 rows from it. This will allow us to work with a smaller subset of the data that still represents it well.
+```{r}
+diamonds_1000 = diamonds %>%
+  sample_n(1000)
+```
+
+
+## Most people know that carat is one of the main determining factors for a diamond's price, but what about other factors?
+
+### Let's create a visualization of how carat and **color** affect diamond price.
+
+```{r}
+ggplot(data = diamonds_1000, aes(x = carat, y = price, color = color)) + 
+  geom_point() +
+  scale_y_continuous(labels = scales::dollar) +
+  scale_color_manual(values =
+  c("#5b2396","#342396","#315bc4","#3191c4","#31bdc4","#31c495","#31c467")) +
+  labs(x = "Carat", y = "Price", color = "Diamond Color", title = "Price vs. Carat by Diamond Color")
+```
+
+We can see that, generally, price increases on the y-axis as carat increases on the x-axis, and price increases on the y-axis as the color variable of diamond color changes (alphabetically backwards) from J to D: J being the lowest priced and D being the highest priced.
+
+### Now, let's create a similar visualization, but this time for how carat and **clarity** affects price
+```{r}
+ggplot(data = diamonds_1000, aes(x = carat, y = price, color = clarity)) + 
+  geom_point() +
+  scale_y_continuous(labels = scales::dollar) +
+  scale_color_manual(values =
+  c("#8c1f1f","#b35c39","#ff573d","#f78d4a","#e39e36","#ffd166","#f1ff78","#9ac949")) +
+  labs(x = "Carat", y = "Price", color = "Clarity", title = "Price vs. Carat by Clarity")
+```
+
+With a quick glance, this looks very similar to our visualization for price, carat, and color! The points' positions are exactly the same since we're still comparing price versus carat on the axes, but now we've changed the color variable to clarity and see that generally, price increases as clarity changes. 
+
+Our color variables of diamond color and clarity seem to follow a similar pattern, meaning they both affect the price of a diamond, and do so somewhat similarly! 
+
+Someone who doesn't know much about diamonds (myself included) can tell from these visualizations that, generally, D is the most expensive color and J is the least expensive color; 'IF'  clarity is most expensive and 'I1' is least expensive. 
+
+When picking out a diamond, there is more to consider than just carats!
+
+
+### Finally, let's just look at a simple density plot to see the quantity of diamonds per price.
+
+```{r}
+ggplot(data = diamonds_1000, aes(x = price)) + 
+  geom_density(fill="yellow",alpha = .4) +
+  scale_x_continuous(labels = scales::dollar) +
+  labs(x="Price", y="Density", 
+       title="Count of Diamonds' by their Prices")
+```
+
+We can see that the majority of diamonds appear to be priced under $5,000, which could possibly be due to the demand for (somewhat) affordable diamond engagement rings!
+
+Different combinations of carat, color, and clarity all exist in our density plot for price, but we now know that the higher the price, the better the carat, color, and/or clarity is.
+
